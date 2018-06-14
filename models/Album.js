@@ -14,7 +14,6 @@ conn.on('error', console.error.bind(console, 'connection error:'));
 // define Album model in JSON key/value pairs
 // values indicate the data type of each key
 var mySchema = mongoose.Schema({
- album: { type: String, required: true },
  artist: String,
  title: String,
  label: String

@@ -1,26 +1,190 @@
 <html>
-    <head>
-        <title>Title Search</title> 
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>Library</title>
 
-    </head>
-    <body>
-        <h2>
-            Search for album title:
-        </h2>
-        <form method="POST" action="/detail">
-          <div>
-            <input type="text" name="title" placeholder="title">
-            <button>Search</button>
-          </div>
-        </form>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.6.0/react.js"></script>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.6.0/react-dom.js"></script>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.25.0/babel.min.js"></script>
+ 
+</head>
+<body>
+
+
+
+<div id="root"></div>
+
+<script type="text/babel">
+  
+
+    class AlbumLib extends React.Component {
+      constructor(props) {
+        super(props); 
+        this.state = {
+          albums: {{{albums}}},
+          curItem: {}
+        };
         
-        <p>
-        <h2>Album index</h2>
+        this.onSearchChange = this.onSearchChange.bind(this);        
+        this.onChange = this.onChange.bind(this);
+        this.onSave = this.onSave.bind(this);
+        this.onDelete = this.onDelete.bind(this);
+        this.onClear = this.onClear.bind(this);
+        
+      }  
+      
+      onSearchChange(event) {
+        this.setState({filter: event.target.value.toLowerCase() });
+      }      
+      
+      showDetails(event) {
+        let editItem = this.state.albums.find((album) => {
+          return album._id == event.target.id;
+        });
+        console.log(editItem); //currently undefined at this point
+        this.setState({curItem: editItem});
+      }
+      
+      onChange(event) {
+        var newItem = this.state.curItem;
+        newItem[event.target.name] = event.target.value
+        this.setState({curItem: newItem});
+      }
     
-            {{#each albums}}
-            <li><a href="/detail?title={{title}}">{{title}}</a></li>
-            {{/each}}
+      onClear() {
+        this.setState({curItem: {}});
+      }
+    
+      onSave() {
+        let newItem = this.state.curItem;
+        if (!newItem.title) {
+          return;
+        }
+        fetch('/api/add/', {
+          method: "POST",
+        	headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newItem)
+        }).then(res => res.json())
+        	.then((json) => {
+          let newLib;
+          if (!newItem._id) {
+            newLib = this.state.albums;
+            newItem._id = json._id;
+            newLib.push(newItem);
+          } else { 
+            newLib = this.state.albums.map((album) => {
+              if (album._id === newItem._id) {
+                album = newItem; 
+              }
+              return album;
+            });          
+          }
+          this.setState({albums: newLib});
+        });
+      }    
+      
+      onDelete(){
+        let id = this.state.curItem._id;
         
-        </p>
-    </body>
+        fetch('/api/delete/' + id).then((response) => {
+          return response.json();
+        }).then((results) => {
+          const libUpdate = this.state.albums.filter((album) => {
+            return album._id !== id;
+          });
+          this.setState({albums: libUpdate, curItem: {}});
+        });
+      }    
+    
+    
+      render() {
+        return (
+          <div>
+           <Title title="Albums Library" />
+           <SearchBar filter={this.state.filter} change={this.onSearchChange} />
+                <h3>List:</h3> <p/>
+           <AlbumList 
+                albums={this.state.albums}
+                filter={this.state.filter}
+                show={this.showDetails.bind(this)}
+           />
+           <Details 
+                album={this.state.curItem} 
+                change={this.onChange} 
+                save={this.onSave}
+                del={this.onDelete}
+                clear={this.onClear}
+            />
+          </div>
+          );
+      }
+    }
+    
+   
+   
+    const Title = ({title}) => {
+        return (
+           <div><h2>{title}</h2></div>
+        );
+    }
+    
+    
+    const SearchBar = (props) => {
+        return (
+          <div>
+            <input
+              size="40"
+              type="text" placeholder="Search by title name"
+              value={props.filter}
+              onChange={props.change}
+            /><p/>
+          </div>
+        );
+    }
+    
+    
+    const AlbumList = ({albums, filter, show}) => {
+        
+        const listItems = albums.map((album) => {
+          if (!filter || album.title.toLowerCase().includes(filter)) { 
+              return <li 
+                      id={album._id}
+                      key={album._id} 
+                      onClick={show}
+                      >{album.title}</li>
+          }
+        });
+        return (
+          <ul>{listItems}</ul>
+        );
+    }
+    
+
+    const Details = (props) => {
+        return (
+          <span id="details">
+            <h3>Details:</h3>
+            <div onChange={props.change}>
+            Artist : <input size="30" type="text" name="artist" value={props.album.artist || ""} /><br/>
+            Title : <input size="40" type="text" name="title" value={props.album.title || ""} /><br/>
+            Label : <input type="text" name="label" value={props.album.label || ""} /><p/>
+            </div>
+            <button onClick={props.save}>Save</button>
+            <button onClick={props.del}>Delete</button>
+            <button onClick={props.clear}>Clear</button>
+          </span>
+        );
+    }
+
+
+    ReactDOM.render(<AlbumLib />, document.getElementById('root'));
+  
+</script>
+
+
+
+
+
+</body>
 </html>
